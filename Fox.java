@@ -49,7 +49,7 @@ public class Fox extends Animal
         else {
             age = 0;
         }
-        foodLevel = rand.nextInt(RABBIT_FOOD_VALUE);
+        foodLevel = rand.nextInt(RABBIT_FOOD_VALUE); // potential bug here - could be zero and die instantly
     }
     
     /**
