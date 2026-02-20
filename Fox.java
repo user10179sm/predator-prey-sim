@@ -67,7 +67,7 @@ public class Fox extends Animal
             List<Location> freeLocations =
                     nextFieldState.getFreeAdjacentLocations(getLocation());
             if(! freeLocations.isEmpty()) {
-                giveBirth(nextFieldState, freeLocations);
+                giveBirth(currentField, nextFieldState, freeLocations);
             }
             // Move towards a source of food if found.
             Location nextLocation = findFood(currentField);
@@ -149,13 +149,15 @@ public class Fox extends Animal
     /**
      * Check whether this fox is to give birth at this step.
      * New births will be made into free adjacent locations.
+     * @param currentField The current field.
+     * @param nextFieldState Next state of the field.
      * @param freeLocations The locations that are free in the current field.
      */
-    private void giveBirth(Field nextFieldState, List<Location> freeLocations)
+    private void giveBirth(Field currentField, Field nextFieldState, List<Location> freeLocations)
     {
         // New foxes are born into adjacent locations.
         // Get a list of adjacent free locations.
-        int births = breed();
+        int births = breed(currentField);
         if(births > 0) {
             for (int b = 0; b < births && ! freeLocations.isEmpty(); b++) {
                 Location loc = freeLocations.remove(0);
@@ -168,12 +170,13 @@ public class Fox extends Animal
     /**
      * Generate a number representing the number of births,
      * if it can breed.
+     * @param currentField The current field.
      * @return The number of births (may be zero).
      */
-    private int breed()
+    private int breed(Field currentField)
     {
         int births;
-        if(canBreed() && rand.nextDouble() <= BREEDING_PROBABILITY) {
+        if(canBreed(currentField) && rand.nextDouble() <= BREEDING_PROBABILITY) {
             births = rand.nextInt(MAX_LITTER_SIZE) + 1;
         }
         else {
@@ -184,8 +187,10 @@ public class Fox extends Animal
 
     /**
      * A fox can breed if it has reached the breeding age.
+     * @param currentField The current field.
+     * @return true if the fox can breed, false otherwise.
      */
-    private boolean canBreed()
+    private boolean canBreed(Field currentField)
     {
         return age >= BREEDING_AGE;
     }

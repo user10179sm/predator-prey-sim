@@ -1,4 +1,5 @@
 
+
 /**
  * Common elements of foxes and rabbits.
  *
@@ -11,6 +12,7 @@ public abstract class Animal
     private boolean alive;
     // The animal's position.
     private Location location;
+    private boolean isMale; // There are two states that the sex could be, male or female.
 
     /**
      * Constructor for objects of class Animal.
@@ -20,6 +22,7 @@ public abstract class Animal
     {
         this.alive = true;
         this.location = location;
+        this.isMale = Randomizer.getRandom().nextBoolean(); // Randomly decide whether the animal is male or female
     }
     
     /**
@@ -54,6 +57,29 @@ public abstract class Animal
     public Location getLocation()
     {
         return location;
+    }
+
+
+
+    /**
+     * Return if the animal is a male or not
+     * @return boolean True if the animal is male. boolean False if the animal is female.
+     */
+    public boolean isMale()
+    {
+        return isMale;
+    }
+
+    /**
+     * Return if the animal is female or not
+     * This works because if the animal is not a male then it is a female (by sex)
+     * If isMale is False then !isMale will evaluate to true
+     * This means that isFemale() = True under isMale = False
+     * @return boolean True if the animal is female. boolean False if the animal is male.
+     */
+    public boolean isFemale()
+    {
+        return !isMale;
     }
     
     /**
