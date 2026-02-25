@@ -17,16 +17,23 @@ public class Simulator
     private static final int DEFAULT_WIDTH = 120;
     // The default depth of the grid.
     private static final int DEFAULT_DEPTH = 80;
-    // The probability that a fox will be created in any given grid position.
-    private static final double FOX_CREATION_PROBABILITY = 0.02;
-    // The probability that a rabbit will be created in any given position.
-    private static final double RABBIT_CREATION_PROBABILITY = 0.08;    
+    // Rainforest species creation probabilities.
+    private static final double FERN_CREATION_PROBABILITY = 0.30;
+    private static final double FRUIT_TREE_CREATION_PROBABILITY = 0.25;
+    private static final double CAPYBARA_CREATION_PROBABILITY = 0.09;
+    private static final double HOWLER_MONKEY_CREATION_PROBABILITY = 0.10;
+    private static final double JAGUAR_CREATION_PROBABILITY = 0.015;
+    private static final double HARPY_EAGLE_CREATION_PROBABILITY = 0.018;
+    // Clock constants
+    private static final int HOURS_PER_DAY = 24;
+    private static final int START_HOUR = 6; // start the day at 6am
+    private static final int STEPS_PER_HOUR = 10;
 
     // The current state of the field.
     private Field field;
     // The current step of the simulation.
     private int step;
-    // A graphical view of the simulation.
+    // A graphical view of the simulation (null in headless mode).
     private final SimulatorView view;
 
     /**
@@ -34,15 +41,24 @@ public class Simulator
      */
     public Simulator()
     {
-        this(DEFAULT_DEPTH, DEFAULT_WIDTH);
+        this(DEFAULT_DEPTH, DEFAULT_WIDTH, false);
     }
-    
+
+    /**
+     * Construct a simulation in headless mode (no GUI).
+     */
+    public Simulator(boolean headless)
+    {
+        this(DEFAULT_DEPTH, DEFAULT_WIDTH, headless);
+    }
+
     /**
      * Create a simulation field with the given size.
      * @param depth Depth of the field. Must be greater than zero.
      * @param width Width of the field. Must be greater than zero.
+     * @param headless If true, no GUI is created.
      */
-    public Simulator(int depth, int width)
+    public Simulator(int depth, int width, boolean headless)
     {
         if(width <= 0 || depth <= 0) {
             System.out.println("The dimensions must be >= zero.");
@@ -50,11 +66,19 @@ public class Simulator
             depth = DEFAULT_DEPTH;
             width = DEFAULT_WIDTH;
         }
-        
+
         field = new Field(depth, width);
-        view = new SimulatorView(depth, width);
+        view = headless ? null : new SimulatorView(depth, width);
 
         reset();
+    }
+
+    /**
+     * Keep old two-arg constructor working.
+     */
+    public Simulator(int depth, int width)
+    {
+        this(depth, width, false);
     }
     
     /**
@@ -76,7 +100,7 @@ public class Simulator
         reportStats();
         for(int n = 1; n <= numSteps && field.isViable(); n++) {
             simulateOneStep();
-            delay(50);         // adjust this to change execution speed
+            if(view != null) delay(50);
         }
     }
     
@@ -93,16 +117,21 @@ public class Simulator
 
         List<Animal> animals = field.getAnimals();
         for (Animal anAnimal : animals) {
-            anAnimal.act(field, nextFieldState);
+            anAnimal.act(field, nextFieldState, isNight());
+        }
+
+        List<Plant> livePlants = field.getPlants();
+        for (Plant aPlant : livePlants) {
+            aPlant.act(field, nextFieldState);
         }
         
         // Replace the old state with the new one.
         field = nextFieldState;
 
         reportStats();
-        view.showStatus(step, field);
+        if(view != null) view.showStatus(step, getTimeLabel(), field);
     }
-        
+
     /**
      * Reset the simulation to a starting position.
      */
@@ -110,7 +139,7 @@ public class Simulator
     {
         step = 0;
         populate();
-        view.showStatus(step, field);
+        if(view != null) view.showStatus(step, getTimeLabel(), field);
     }
     
     /**
@@ -122,17 +151,30 @@ public class Simulator
         field.clear();
         for(int row = 0; row < field.getDepth(); row++) {
             for(int col = 0; col < field.getWidth(); col++) {
-                if(rand.nextDouble() <= FOX_CREATION_PROBABILITY) {
-                    Location location = new Location(row, col);
-                    Fox fox = new Fox(true, location);
-                    field.placeAnimal(fox, location);
+                Location location = new Location(row, col);
+                // Plants occupy the plant layer independently of animals.
+                double plantRoll = rand.nextDouble();
+                if(plantRoll <= FERN_CREATION_PROBABILITY) {
+                    field.placePlant(new Fern(true, location), location);
+                } else if(plantRoll <= FERN_CREATION_PROBABILITY + FRUIT_TREE_CREATION_PROBABILITY) {
+                    field.placePlant(new FruitTree(true, location), location);
                 }
-                else if(rand.nextDouble() <= RABBIT_CREATION_PROBABILITY) {
-                    Location location = new Location(row, col);
-                    Rabbit rabbit = new Rabbit(true, location);
-                    field.placeAnimal(rabbit, location);
+                // Animals occupy the animal layer.
+                double animalRoll = rand.nextDouble();
+                if(animalRoll <= CAPYBARA_CREATION_PROBABILITY) {
+                    field.placeAnimal(new Capybara(true, location), location);
                 }
-                // else leave the location empty.
+                else if(animalRoll <= CAPYBARA_CREATION_PROBABILITY + HOWLER_MONKEY_CREATION_PROBABILITY) {
+                    field.placeAnimal(new HowlerMonkey(true, location), location);
+                }
+                else if(animalRoll <= CAPYBARA_CREATION_PROBABILITY + HOWLER_MONKEY_CREATION_PROBABILITY
+                        + JAGUAR_CREATION_PROBABILITY) {
+                    field.placeAnimal(new Jaguar(true, location), location);
+                }
+                else if(animalRoll <= CAPYBARA_CREATION_PROBABILITY + HOWLER_MONKEY_CREATION_PROBABILITY
+                        + JAGUAR_CREATION_PROBABILITY + HARPY_EAGLE_CREATION_PROBABILITY) {
+                    field.placeAnimal(new HarpyEagle(true, location), location);
+                }
             }
         }
     }
@@ -144,6 +186,49 @@ public class Simulator
     {
         //System.out.print("Step: " + step + " ");
         field.fieldStats();
+    }
+
+    /**
+     * Gets the current hour of the day
+     * @return currentHour
+     */
+    private int getHourOfDay()
+    {
+        int hoursPassed = step / STEPS_PER_HOUR;
+        int currentHour = (START_HOUR + hoursPassed) % HOURS_PER_DAY;
+        return currentHour;
+    }
+
+
+    /**
+     * Determine whether it is night or not.
+     * Night time hours are between 9 pm and 5am
+     * @return boolean
+     */
+    private boolean isNight()
+    {
+        int hour = getHourOfDay();
+        return hour < 6 || hour >= 21;
+    }
+
+    /**
+     * Get the current day number
+     * @return currentDay
+     */
+    private int getDayNumber()
+    {
+        int hoursPassed = step / STEPS_PER_HOUR;
+        int totalHours = START_HOUR + hoursPassed;
+        return totalHours / HOURS_PER_DAY;
+    }
+
+    /**
+     * Get label for current time
+     * @return currentTimeLabel
+     */
+    private String getTimeLabel()
+    {
+        return "Day " + getDayNumber() + " " + String.format("%02d:00", getHourOfDay());
     }
     
     /**

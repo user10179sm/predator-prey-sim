@@ -111,6 +111,10 @@ public class FieldStats
                 if(animal != null) {
                     incrementCount(animal.getClass());
                 }
+                Plant plant = field.getPlantAt(new Location(row, col));
+                if(plant != null) {
+                    incrementCount(plant.getClass());
+                }
             }
         }
         countsValid = true;

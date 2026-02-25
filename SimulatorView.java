@@ -22,6 +22,7 @@ public class SimulatorView extends JFrame
     private static final Color UNKNOWN_COLOR = Color.gray;
 
     private final String STEP_PREFIX = "Step: ";
+    private final String TIME_PREFIX = " | Time: ";
     private final String POPULATION_PREFIX = "Population: ";
     private final JLabel stepLabel;
     private final JLabel population;
@@ -41,10 +42,13 @@ public class SimulatorView extends JFrame
     {
         stats = new FieldStats();
         colors = new LinkedHashMap<>();
-        setColor(Rabbit.class, Color.orange);
-        setColor(Fox.class, Color.blue);
+        setColor(Capybara.class,    new Color(139, 90, 43));   // brown
+        setColor(HowlerMonkey.class,new Color(180, 130, 60));  // tan
+        setColor(Jaguar.class,      new Color(210, 100, 0));   // dark orange
+        setColor(HarpyEagle.class,  new Color(50, 50, 160));   // dark blue
+        setColor(Fern.class,        new Color(30, 150, 30));   // green
 
-        setTitle("Fox and Rabbit Simulation");
+        setTitle("Rainforest Predator-Prey Simulation");
         stepLabel = new JLabel(STEP_PREFIX, JLabel.CENTER);
         population = new JLabel(POPULATION_PREFIX, JLabel.CENTER);
         
@@ -92,24 +96,40 @@ public class SimulatorView extends JFrame
      */
     public void showStatus(int step, Field field)
     {
+        showStatus(step, null, field);
+    }
+
+    public void showStatus(int step, String timeLabel, Field field)
+    {
         if(!isVisible()) {
             setVisible(true);
         }
-            
-        stepLabel.setText(STEP_PREFIX + step);
+
+        String labelText = STEP_PREFIX + step;
+        if(timeLabel != null && !timeLabel.isEmpty()) {
+            labelText = labelText + TIME_PREFIX + timeLabel;
+        }
+        stepLabel.setText(labelText);
         stats.reset();
-        
+
         fieldView.preparePaint();
 
         for(int row = 0; row < field.getDepth(); row++) {
             for(int col = 0; col < field.getWidth(); col++) {
-                Object animal = field.getAnimalAt(new Location(row, col));
+                Location loc = new Location(row, col);
+                Plant plant = field.getPlantAt(loc);
+                Animal animal = field.getAnimalAt(loc);
+                // Always draw the empty background first.
+                fieldView.drawMark(col, row, EMPTY_COLOR);
                 if(animal != null) {
                     stats.incrementCount(animal.getClass());
                     fieldView.drawMark(col, row, getColor(animal.getClass()));
                 }
-                else {
-                    fieldView.drawMark(col, row, EMPTY_COLOR);
+                // Draw plant marker on top so it remains visible even when
+                // an animal occupies the cell.
+                if(plant != null) {
+                    stats.incrementCount(plant.getClass());
+                    fieldView.drawPlantMark(col, row, getColor(plant.getClass()));
                 }
             }
         }
@@ -194,6 +214,20 @@ public class SimulatorView extends JFrame
         {
             g.setColor(color);
             g.fillRect(x * xScale, y * yScale, xScale-1, yScale-1);
+        }
+
+        /**
+         * Draw a small plant marker centred in the cell so it remains visible
+         * when an animal is drawn over the cell.
+         */
+        public void drawPlantMark(int x, int y, Color color)
+        {
+            g.setColor(color);
+            int px = x * xScale + xScale/4;
+            int py = y * yScale + yScale/4;
+            int w = Math.max(1, xScale/2);
+            int h = Math.max(1, yScale/2);
+            g.fillOval(px, py, w, h);
         }
 
         /**
