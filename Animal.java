@@ -1,77 +1,71 @@
+import java.util.List;
 
 /**
- * Common elements of foxes and rabbits.
+ * Abstract base for all animals in the simulation.
+ * Extends SimulationEntity for the shared alive/location/age state.
  *
- * @author David J. Barnes and Michael Kölling
- * @version 7.0
+ * act() is a concrete final method here — subclasses customise behaviour
+ * through hook methods only, not by reimplementing the full turn logic.
  */
-public abstract class Animal
+public abstract class Animal extends SimulationEntity
 {
     /** The two possible sexes for any animal. */
     public enum Gender { MALE, FEMALE }
 
-    // Whether the animal is alive or not.
-    private boolean alive;
-    // The animal's position.
-    private Location location;
-    // The animal's gender, assigned randomly at birth.
+    // Current hunger level; only meaningful when usesHunger() returns true.
+    private int foodLevel = 0;
+
+    // Gender assigned once at birth.
     private final Gender gender;
-    // Shared instance state for subclasses
-    protected int age;
-    protected int foodLevel;
+
+    // ─── Disease system constants ──────────────────────────────────────────
+    private static final double INFECTION_SPREAD_CHANCE = 0.20;
+    private static final double INFECTION_DEATH_CHANCE  = 0.003;
+    private static final int    INFECTION_DURATION       = 50;
+    private static final int    IMMUNITY_DURATION        = 30;
+
+    // Per-instance disease state
+    private boolean infected     = false;
+    private int     infectionAge = 0;
+    private int     immuneAge    = 0;
+
+    @Override public abstract int getMaxAge();
 
     /**
-     * Return the maximum age for this animal species.
+     * Whether this species tracks hunger. Default: false.
      */
-    abstract public int getMaxAge();
+    public boolean usesHunger() { return false; }
 
-    /**
-     * Whether this animal uses hunger mechanics (foodLevel).
-     * Subclasses may override; default is false.
-     */
-    public boolean usesHunger()
+    /** Shared random source available to all subclasses. */
+    protected static final java.util.Random rand = Randomizer.getRandom();
+
+    protected Animal(Location location)
     {
-        return false;
-    }
-
-    /**
-     * Constructor for objects of class Animal.
-     * @param location The animal's location.
-     */
-    public Animal(Location location)
-    {
-        this.alive = true;
-        this.location = location;
-        this.age = 0;
-        this.foodLevel = 0;
+        super(location);
         this.gender = rand.nextBoolean() ? Gender.MALE : Gender.FEMALE;
     }
 
-    /**
-     * Return this animal's gender.
-     */
-    public Gender getGender()
-    {
-        return gender;
-    }
+    /** Set the starting foodLevel (called from subclass constructors). */
+    protected void initFoodLevel(int level) { foodLevel = level; }
 
-    /**
-     * Return true if there is an adjacent animal of the same species
-     * and opposite gender in the current field.
-     */
-    /**
-     * How many cells out to search for a mate. Default is 2 (5x5 grid minus self).
-     * Predators override this for a wider search at lower densities.
-     */
+
+
+    /** Whether a nearby opposite-gender partner is required to breed. Default: false. */
+    protected boolean requiresMate() { return false; }
+
+    /** Search radius (cells) for mate detection. Default: 2. */
     protected int getGenderSearchRadius() { return 2; }
 
     /**
-     * Whether this species requires a nearby opposite-gender individual to breed.
-     * Returning false keeps gender as a tracked trait while allowing any individual
-     * to breed (appropriate for species that find mates via scent / territory, not
-     * direct proximity). Defaults to false; override to true to re-enable the gate.
+     * Whether this animal is active this step.
+     * Default: active during daylight when movement is allowed (not a storm).
      */
-    protected boolean requiresMate() { return false; }
+    protected boolean isActiveNow(SimulationContext ctx)
+    {
+        return ctx.isDaylight() && ctx.allowsMovement();
+    }
+
+    public Gender getGender() { return gender; }
 
     protected boolean hasOppositeGenderNeighbour(Field currentField)
     {
@@ -88,219 +82,240 @@ public abstract class Animal
     }
     
     /**
-     * Act.
-     * @param currentField The current state of the field.
-     * @param nextFieldState The new state being built.
+     * Execute one simulation step for this animal.
+     * The full turn sequence is defined here; subclasses customise via hook
+     * methods only — they do NOT override act().
      */
-    abstract public void act(Field currentField, Field nextFieldState);
-    
-    /**
-     * Check whether the animal is alive or not.
-     * @return true if the animal is still alive.
-     */
-    public boolean isAlive()
+    public final void act(Field currentField, Field nextFieldState, SimulationContext ctx)
     {
-        return alive;
-    }
+        incrementAge();
+        // B-08: guard BEFORE progressDisease so a just-aged-out animal is not
+        // subjected to further disease progression.
+        if(!isAlive()) return;
 
-    /**
-     * Indicate that the animal is no longer alive.
-     */
-    protected void setDead()
-    {
-        alive = false;
-        location = null;
-    }
-    
-    /**
-     * Return the animal's location.
-     * @return The animal's location.
-     */
-    public Location getLocation()
-    {
-        return location;
-    }
-    
-    /**
-     * Set the animal's location.
-     * @param location The new location.
-     */
-    protected void setLocation(Location location)
-    {
-        this.location = location;
-    }
+        progressDisease();
+        if(!isAlive()) return;
 
-    /**
-     * Increase the age. This could result in the animal's death.
-     */
-    protected void incrementAge()
-    {
-        age++;
-        if(age > getMaxAge()) {
-            setDead();
-        }
-    }
+        trySpreadDisease(currentField);
 
-    /**
-     * Make this animal more hungry if it uses hunger. This could result in death.
-     */
-    protected void incrementHunger()
-    {
-        if(!usesHunger()) {
+        if(!isActiveNow(ctx)) {
+            // B-01: Sleeping animal — always try to retain current cell.
+            // If an active animal already moved into that cell in nextFieldState,
+            // fall back to any adjacent free cell rather than silently vanishing.
+            Location stay = getLocation();
+            if(nextFieldState.getAnimalAt(stay) == null) {
+                nextFieldState.placeAnimal(this, stay);
+            } else {
+                List<Location> nearby = nextFieldState.getFreeAdjacentLocations(stay);
+                if(!nearby.isEmpty()) {
+                    Location fallback = nearby.remove(0);
+                    setLocation(fallback);
+                    nextFieldState.placeAnimal(this, fallback);
+                } else {
+                    setDead(); // genuinely crowded out — death recorded correctly
+                }
+            }
             return;
         }
-        foodLevel--;
-        if(foodLevel <= 0) {
+
+        incrementHunger();
+        if(!isAlive()) return;
+
+        // B-04: Use a separate slot list for births so offspring cannot consume
+        // all free cells and accidentally kill the parent.
+        List<Location> birthSlots = nextFieldState.getFreeAdjacentLocations(getLocation());
+        if(!birthSlots.isEmpty()) {
+            giveBirth(currentField, nextFieldState, birthSlots, ctx);
+        }
+
+        // After birth, re-query free cells so movement reflects newly filled slots.
+        Location nextLocation = findFood(currentField, ctx);
+        List<Location> moveSlots = nextFieldState.getFreeAdjacentLocations(getLocation());
+        // If the prey's cell is already taken in nextFieldState, use a free cell instead.
+        if(nextLocation != null && nextFieldState.getAnimalAt(nextLocation) != null) {
+            nextLocation = moveSlots.isEmpty() ? null : moveSlots.remove(0);
+        }
+        if(nextLocation == null && !moveSlots.isEmpty()) {
+            nextLocation = moveSlots.remove(0);
+        }
+        if(nextLocation != null) {
+            setLocation(nextLocation);
+            nextFieldState.placeAnimal(this, nextLocation);
+        } else {
             setDead();
         }
     }
 
-    // Random generator for breeding/food decisions
-    private static final java.util.Random rand = Randomizer.getRandom();
-
-    /**
-     * Return a list of Classes this animal will consider prey.
-     * Subclasses should override to specify prey types.
-     */
-    protected java.util.List<Class<?>> getPreyClasses()
+    protected void incrementHunger()
     {
-        return java.util.Collections.emptyList();
+        if(!usesHunger()) return;
+        foodLevel--;
+        if(foodLevel <= 0) setDead();
     }
 
     /**
-     * Return the food value gained by eating an object of the given class.
-     * Subclasses that eat should override.
+     * Food value gained by eating something of the given class.
+     * Return > 0 for recognised prey; 0 for non-prey.
+     * Predator/prey relationships are expressed here on the predator side.
      */
-    protected int getFoodValue(Class<?> preyClass)
-    {
-        return 0;
-    }
+    protected int getFoodValue(Class<?> preyClass) { return 0; }
+
+    /** Current food level (read-only access for subclasses, e.g. conditional canEat). */
+    protected int getFoodLevel() { return foodLevel; }
+
+    /** foodLevel above which this animal stops hunting. Default: 0 (always hunt). */
+    protected int getHungerThreshold() { return 0; }
 
     /**
-     * Determine whether this animal (or plant) can be eaten by the
-     * given predator. Subclasses override to provide species-specific
-     * rules. Default is not edible.
+     * Override to return true for apex predators that should hunt on every step
+     * regardless of foodLevel.  Separates the "always hunt" semantics from the
+     * numeric threshold so getHungerThreshold() retains its documented meaning.
      */
-    public boolean isEdibleBy(Animal predator)
-    {
-        return false;
-    }
+    protected boolean isAlwaysHungry() { return false; }
 
     /**
-     * The foodLevel below which this animal will actively seek food.
-     * Subclasses can override to prevent unnecessary eating when full.
-     * Default 0 means always seek food (appropriate for pure predators).
-     */
-    protected int getHungerThreshold()
-    {
-        return 0;
-    }
-
-    /**
-     * Whether this predator is willing to eat prey of the given class right now.
-     * Allows conditional hunting — e.g. only eat secondary prey when hungry.
-     * Default: always willing to eat anything that isEdibleBy returns true for.
+     * Whether this predator will eat prey of the given class right now.
+     * Allows conditional hunting (e.g. secondary prey only when hungry).
      */
     protected boolean canEat(Class<?> preyClass) { return true; }
 
     /**
-     * Look for prey adjacent to the current location. If found, kill it,
-     * set foodLevel appropriately and return its location. Otherwise return null.
+     * Scan adjacent cells for food.
+     * Uses getFoodValue() > 0 to recognise prey — predator/prey knowledge
+     * stays on the predator side rather than the prey side.
      */
-    protected Location findFood(Field field)
+    protected Location findFood(Field field, SimulationContext ctx)
     {
-        // Only eat if hungry enough.
-        if(foodLevel > getHungerThreshold()) {
-            return null;
-        }
-        java.util.List<Location> adjacent = field.getAdjacentLocations(getLocation());
-        java.util.Iterator<Location> it = adjacent.iterator();
-        Location foodLocation = null;
-        while(foodLocation == null && it.hasNext()) {
-            Location loc = it.next();
-            // First check for an animal at the location.
+        // OOP-03: isAlwaysHungry() separates "hunt every step" from a numeric threshold.
+        if(!isAlwaysHungry() && foodLevel > getHungerThreshold()) return null;
+
+        for(Location loc : field.getAdjacentLocations(getLocation())) {
+
+            // Animal prey
             Animal animal = field.getAnimalAt(loc);
-            if(animal != null && animal.isAlive()) {
-                if(animal.isEdibleBy(this) && canEat(animal.getClass())) {
-                    animal.setDead();
-                    foodLevel = getFoodValue(animal.getClass());
-                    foodLocation = loc;
-                    break;
-                }
+            if(animal != null && animal.isAlive()
+                    && getFoodValue(animal.getClass()) > 0
+                    && canEat(animal.getClass())) {
+                if(ctx != null && rand.nextDouble() > ctx.huntingSuccessFactor()) continue;
+                if(animal.isInfected()) infect();
+                animal.setDead();
+                foodLevel = getFoodValue(animal.getClass());
+                return loc;
             }
-            // Next check for a plant in the plant layer.
+
+            // Plant prey
             Plant plant = field.getPlantAt(loc);
-            if(plant != null && plant.isAlive() && plant.isEdibleBy(this)) {
+            if(plant != null && plant.isAlive() && getFoodValue(plant.getClass()) > 0) {
                 plant.setDead();
                 field.clearPlant(loc);
                 foodLevel = getFoodValue(plant.getClass());
-                foodLocation = loc;
-                break;
+                return loc;
             }
         }
-        return foodLocation;
+        return null;
     }
 
-    /**
-     * Subclasses implement getters for breeding characteristics below.
-     */
     protected abstract int getBreedingAge();
     protected abstract double getBreedingProbability();
     protected abstract int getMaxLitterSize();
-
-    /**
-     * Can this animal breed (based on age)?
-     */
-    protected boolean canBreed()
-    {
-        return age >= getBreedingAge();
-    }
-
-    /**
-     * Calculate number of births this step.
-     */
-    protected int breed()
-    {
-        int births = 0;
-        if(canBreed() && rand.nextDouble() <= getBreedingProbability()) {
-            births = rand.nextInt(getMaxLitterSize()) + 1;
-        }
-        return births;
-    }
-
-    /**
-     * Create a new young instance at the given location. Subclasses must implement.
-     */
     protected abstract Animal createYoung(Location location);
 
-    /**
-     * Give birth into available free locations in the next field state.
-     * Requires an adjacent opposite-gender partner of the same species.
-     */
-    protected void giveBirth(Field currentField, Field nextFieldState, java.util.List<Location> freeLocations)
+    protected boolean canBreed() { return getAge() >= getBreedingAge(); }
+
+    private int breed(SimulationContext ctx)
     {
-        if(requiresMate() && !hasOppositeGenderNeighbour(currentField)) {
-            return;
+        // ctx is never null in practice (always passed from act()), but guard is harmless.
+        double bp = getBreedingProbability()
+                * ctx.breedingFactor()
+                * (infected ? 0.4 : 1.0);
+        // B-07: use strict < so bp == 0.0 (e.g. during storms) never permits breeding.
+        return (canBreed() && rand.nextDouble() < bp)
+                ? rand.nextInt(getMaxLitterSize()) + 1 : 0;
+    }
+
+    protected void giveBirth(Field currentField, Field nextFieldState,
+                             List<Location> freeLocations, SimulationContext ctx)
+    {
+        if(requiresMate() && !hasOppositeGenderNeighbour(currentField)) return;
+        int births = breed(ctx);
+        for(int b = 0; b < births && !freeLocations.isEmpty(); b++) {
+            Location loc = freeLocations.remove(0);
+            nextFieldState.placeAnimal(createYoung(loc), loc);
         }
-        int births = breed();
-        if(births > 0) {
-            for (int b = 0; b < births && !freeLocations.isEmpty(); b++) {
-                Location loc = freeLocations.remove(0);
-                Animal young = createYoung(loc);
-                nextFieldState.placeAnimal(young, loc);
+    }
+
+    // ─── Disease methods ──────────────────────────────────────────────────────
+
+    /** Whether this animal is currently infected. */
+    public boolean isInfected() { return infected; }
+
+    /** Whether this animal is currently immune (post-infection recovery period). */
+    public boolean isImmune()   { return immuneAge > 0; }
+
+    /**
+     * Attempt to infect this animal.  Has no effect if already infected or immune.
+     */
+    public void infect()
+    {
+        if(!infected && !isImmune()) {
+            infected = true;
+            infectionAge = 0;
+        }
+    }
+
+    /**
+     * Advance the disease state by one step.
+     * Infected animals may die randomly, and eventually recover (becoming immune).
+     * Must be called once per act() cycle.
+     */
+    protected void progressDisease()
+    {
+        if(infected) {
+            infectionAge++;
+            // Small per-step chance of disease-induced death.
+            if(rand.nextDouble() < INFECTION_DEATH_CHANCE) {
+                setDead();
+                return;
+            }
+            // After the infection duration, recover with immunity.
+            if(infectionAge >= INFECTION_DURATION) {
+                infected     = false;
+                infectionAge = 0;
+                immuneAge    = IMMUNITY_DURATION;
+            }
+        } else if(immuneAge > 0) {
+            immuneAge--;
+        }
+    }
+
+    /**
+     * Spread the disease to adjacent animals.  Only infected animals spread.
+     * Proximity disease spread (as opposed to spread through eating).
+     */
+    protected void trySpreadDisease(Field field)
+    {
+        if(!infected) return;
+        for(Location loc : field.getAdjacentLocations(getLocation())) {
+            Animal neighbour = field.getAnimalAt(loc);
+            if(neighbour != null && neighbour.isAlive()
+                    && rand.nextDouble() < INFECTION_SPREAD_CHANCE) {
+                neighbour.infect();
             }
         }
     }
 
+    // ─── toString ────────────────────────────────────────────────────────────
+
     @Override
-    public String toString() {
-        String s = getClass().getSimpleName() + "{" +
-                "age=" + age +
-                ", alive=" + isAlive() +
-                ", location=" + getLocation();
-        if(usesHunger()) {
-            s += ", foodLevel=" + foodLevel;
-        }
+    public String toString()
+    {
+        String s = getClass().getSimpleName() + "{"
+                + "age=" + getAge()
+                + ", alive=" + isAlive()
+                + ", location=" + getLocation();
+        if(usesHunger())    s += ", foodLevel=" + foodLevel;
+        if(infected)        s += ", INFECTED";
+        else if(isImmune()) s += ", IMMUNE";
         s += '}';
         return s;
     }

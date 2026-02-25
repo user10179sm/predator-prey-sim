@@ -74,11 +74,15 @@ public class Field
     }
 
     /**
-     * Remove any plant at the given location.
+     * Remove any plant at the given location, keeping both internal
+     * structures (HashMap and list) in sync.
      */
     public void clearPlant(Location location)
     {
-        plants.remove(location);
+        Plant removed = plants.remove(location);
+        if(removed != null) {
+            plantList.remove(removed);
+        }
     }
     
     /**

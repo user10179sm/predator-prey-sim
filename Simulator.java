@@ -18,17 +18,19 @@ public class Simulator
     // The default depth of the grid.
     private static final int DEFAULT_DEPTH = 80;
     // Rainforest species creation probabilities.
-    private static final double FERN_CREATION_PROBABILITY = 0.30;
+    private static final double FERN_CREATION_PROBABILITY = 0.25;
     private static final double FRUIT_TREE_CREATION_PROBABILITY = 0.25;
-    private static final double CAPYBARA_CREATION_PROBABILITY = 0.09;
+    private static final double CAPYBARA_CREATION_PROBABILITY = 0.08;
     private static final double HOWLER_MONKEY_CREATION_PROBABILITY = 0.10;
-    private static final double JAGUAR_CREATION_PROBABILITY = 0.015;
+    private static final double JAGUAR_CREATION_PROBABILITY = 0.018;
     private static final double HARPY_EAGLE_CREATION_PROBABILITY = 0.018;
 
     // The current state of the field.
     private Field field;
     // The current step of the simulation.
     private int step;
+    // Tracks time-of-day and weather for this simulation run.
+    private final SimulationContext ctx = new SimulationContext();
     // A graphical view of the simulation (null in headless mode).
     private final SimulatorView view;
 
@@ -78,8 +80,8 @@ public class Simulator
     }
     
     /**
-     * Run the simulation from its current state for a reasonably long 
-     * period (4000 steps).
+     * Run the simulation from its current state for a reasonably long
+     * period (700 steps).
      */
     public void runLongSimulation()
     {
@@ -107,25 +109,26 @@ public class Simulator
     public void simulateOneStep()
     {
         step++;
+        ctx.advance();
         // Use a separate Field to store the starting state of
         // the next step.
         Field nextFieldState = new Field(field.getDepth(), field.getWidth());
 
         List<Animal> animals = field.getAnimals();
         for (Animal anAnimal : animals) {
-            anAnimal.act(field, nextFieldState);
+            anAnimal.act(field, nextFieldState, ctx);
         }
 
         List<Plant> livePlants = field.getPlants();
         for (Plant aPlant : livePlants) {
-            aPlant.act(field, nextFieldState);
+            aPlant.act(field, nextFieldState, ctx);
         }
         
         // Replace the old state with the new one.
         field = nextFieldState;
 
         reportStats();
-        if(view != null) view.showStatus(step, field);
+        if(view != null) view.showStatus(step, field, ctx);
     }
 
     /**
@@ -135,7 +138,7 @@ public class Simulator
     {
         step = 0;
         populate();
-        if(view != null) view.showStatus(step, field);
+        if(view != null) view.showStatus(step, field, ctx);
     }
     
     /**
@@ -158,10 +161,14 @@ public class Simulator
                 // Animals occupy the animal layer.
                 double animalRoll = rand.nextDouble();
                 if(animalRoll <= CAPYBARA_CREATION_PROBABILITY) {
-                    field.placeAnimal(new Capybara(true, location), location);
+                    Animal a = new Capybara(true, location);
+                    if(rand.nextDouble() < 0.01) a.infect();
+                    field.placeAnimal(a, location);
                 }
                 else if(animalRoll <= CAPYBARA_CREATION_PROBABILITY + HOWLER_MONKEY_CREATION_PROBABILITY) {
-                    field.placeAnimal(new HowlerMonkey(true, location), location);
+                    Animal a = new HowlerMonkey(true, location);
+                    if(rand.nextDouble() < 0.01) a.infect();
+                    field.placeAnimal(a, location);
                 }
                 else if(animalRoll <= CAPYBARA_CREATION_PROBABILITY + HOWLER_MONKEY_CREATION_PROBABILITY
                         + JAGUAR_CREATION_PROBABILITY) {
