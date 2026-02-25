@@ -92,7 +92,7 @@ public abstract class Animal
      * @param currentField The current state of the field.
      * @param nextFieldState The new state being built.
      */
-    abstract public void act(Field currentField, Field nextFieldState);
+    abstract public void act(Field currentField, Field nextFieldState, boolean isNight);
     
     /**
      * Check whether the animal is alive or not.

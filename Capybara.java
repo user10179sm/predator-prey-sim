@@ -24,7 +24,7 @@ public class Capybara extends Animal
     }
 
     @Override
-    public void act(Field currentField, Field nextFieldState)
+    public void act(Field currentField, Field nextFieldState, boolean isNight)
     {
         incrementAge();
         incrementHunger();
@@ -34,19 +34,26 @@ public class Capybara extends Animal
             if(!freeLocations.isEmpty()) {
                 giveBirth(currentField, nextFieldState, freeLocations);
             }
-            Location nextLocation = findFood(currentField);
-            // Guard: food's current-field location may already be occupied in nextFieldState.
-            if(nextLocation != null && nextFieldState.getAnimalAt(nextLocation) != null) {
-                nextLocation = freeLocations.isEmpty() ? null : freeLocations.remove(0);
+            // Capybara sleeps at night only when no jaguar or harpy eagle is nearby
+            if(isNight && !isPredatorNearby(currentField)) {
+                // Capybara stays in the same position when sleeping
+                nextFieldState.placeAnimal(this, getLocation());
             }
-            if(nextLocation == null && !freeLocations.isEmpty()) {
-                nextLocation = freeLocations.remove(0);
-            }
-            if(nextLocation != null) {
-                setLocation(nextLocation);
-                nextFieldState.placeAnimal(this, nextLocation);
-            } else {
-                setDead();
+            else {
+                Location nextLocation = findFood(currentField);
+                // Guard: food's current-field location may already be occupied in nextFieldState.
+                if(nextLocation != null && nextFieldState.getAnimalAt(nextLocation) != null) {
+                    nextLocation = freeLocations.isEmpty() ? null : freeLocations.remove(0);
+                }
+                if(nextLocation == null && !freeLocations.isEmpty()) {
+                    nextLocation = freeLocations.remove(0);
+                }
+                if(nextLocation != null) {
+                    setLocation(nextLocation);
+                    nextFieldState.placeAnimal(this, nextLocation);
+                } else {
+                    setDead();
+                }
             }
         }
     }
@@ -71,6 +78,22 @@ public class Capybara extends Animal
     {
         if(preyClass == Fern.class) return FERN_FOOD_VALUE;
         return 0;
+    }
+
+    /**
+     * Check whether jaguar or harpy eagle is in adjacent location
+     * @param currentField The current state of the field
+     * @return true if a jaguar or harpy eagle is adjacent, false otherwise
+     */
+    private boolean isPredatorNearby(Field currentField)
+    {
+        for (Location loc : currentField.getAdjacentLocations(getLocation())) {
+            Animal animal = currentField.getAnimalAt(loc);
+            if ((animal instanceof Jaguar || animal instanceof HarpyEagle) && animal.isAlive()) {
+                return true;
+            }
+        }
+        return false;
     }
 
     @Override

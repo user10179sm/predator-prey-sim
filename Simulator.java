@@ -24,6 +24,10 @@ public class Simulator
     private static final double HOWLER_MONKEY_CREATION_PROBABILITY = 0.10;
     private static final double JAGUAR_CREATION_PROBABILITY = 0.015;
     private static final double HARPY_EAGLE_CREATION_PROBABILITY = 0.018;
+    // Clock constants
+    private static final int HOURS_PER_DAY = 24;
+    private static final int START_HOUR = 6; // start the day at 6am
+    private static final int STEPS_PER_HOUR = 10;
 
     // The current state of the field.
     private Field field;
@@ -113,7 +117,7 @@ public class Simulator
 
         List<Animal> animals = field.getAnimals();
         for (Animal anAnimal : animals) {
-            anAnimal.act(field, nextFieldState);
+            anAnimal.act(field, nextFieldState, isNight());
         }
 
         List<Plant> livePlants = field.getPlants();
@@ -125,7 +129,7 @@ public class Simulator
         field = nextFieldState;
 
         reportStats();
-        if(view != null) view.showStatus(step, field);
+        if(view != null) view.showStatus(step, getTimeLabel(), field);
     }
 
     /**
@@ -135,7 +139,7 @@ public class Simulator
     {
         step = 0;
         populate();
-        if(view != null) view.showStatus(step, field);
+        if(view != null) view.showStatus(step, getTimeLabel(), field);
     }
     
     /**
@@ -182,6 +186,49 @@ public class Simulator
     {
         //System.out.print("Step: " + step + " ");
         field.fieldStats();
+    }
+
+    /**
+     * Gets the current hour of the day
+     * @return currentHour
+     */
+    private int getHourOfDay()
+    {
+        int hoursPassed = step / STEPS_PER_HOUR;
+        int currentHour = (START_HOUR + hoursPassed) % HOURS_PER_DAY;
+        return currentHour;
+    }
+
+
+    /**
+     * Determine whether it is night or not.
+     * Night time hours are between 9 pm and 5am
+     * @return boolean
+     */
+    private boolean isNight()
+    {
+        int hour = getHourOfDay();
+        return hour < 6 || hour >= 21;
+    }
+
+    /**
+     * Get the current day number
+     * @return currentDay
+     */
+    private int getDayNumber()
+    {
+        int hoursPassed = step / STEPS_PER_HOUR;
+        int totalHours = START_HOUR + hoursPassed;
+        return totalHours / HOURS_PER_DAY;
+    }
+
+    /**
+     * Get label for current time
+     * @return currentTimeLabel
+     */
+    private String getTimeLabel()
+    {
+        return "Day " + getDayNumber() + " " + String.format("%02d:00", getHourOfDay());
     }
     
     /**

@@ -24,7 +24,7 @@ public class Jaguar extends Animal
     }
 
     @Override
-    public void act(Field currentField, Field nextFieldState)
+    public void act(Field currentField, Field nextFieldState, boolean isNight)
     {
         incrementAge();
         incrementHunger();

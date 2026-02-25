@@ -22,6 +22,7 @@ public class SimulatorView extends JFrame
     private static final Color UNKNOWN_COLOR = Color.gray;
 
     private final String STEP_PREFIX = "Step: ";
+    private final String TIME_PREFIX = " | Time: ";
     private final String POPULATION_PREFIX = "Population: ";
     private final JLabel stepLabel;
     private final JLabel population;
@@ -95,13 +96,22 @@ public class SimulatorView extends JFrame
      */
     public void showStatus(int step, Field field)
     {
+        showStatus(step, null, field);
+    }
+
+    public void showStatus(int step, String timeLabel, Field field)
+    {
         if(!isVisible()) {
             setVisible(true);
         }
-            
-        stepLabel.setText(STEP_PREFIX + step);
+
+        String labelText = STEP_PREFIX + step;
+        if(timeLabel != null && !timeLabel.isEmpty()) {
+            labelText = labelText + TIME_PREFIX + timeLabel;
+        }
+        stepLabel.setText(labelText);
         stats.reset();
-        
+
         fieldView.preparePaint();
 
         for(int row = 0; row < field.getDepth(); row++) {
