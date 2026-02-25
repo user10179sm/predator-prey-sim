@@ -24,7 +24,7 @@ public class Capybara extends Animal
     }
 
     @Override
-    public void act(Field currentField, Field nextFieldState, boolean isNight)
+    public void act(Field currentField, Field nextFieldState, boolean isNight, Weather weather)
     {
         incrementAge();
         incrementHunger();

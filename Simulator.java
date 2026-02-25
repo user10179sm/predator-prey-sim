@@ -28,11 +28,15 @@ public class Simulator
     private static final int HOURS_PER_DAY = 24;
     private static final int START_HOUR = 6; // start the day at 6am
     private static final int STEPS_PER_HOUR = 10;
+    private static final double WEATHER_CHANGE_PROBABILITY = 0.45;
+    private static final Random rand = Randomizer.getRandom();
 
     // The current state of the field.
     private Field field;
     // The current step of the simulation.
     private int step;
+    // Current weather
+    private Weather currentWeather;
     // A graphical view of the simulation (null in headless mode).
     private final SimulatorView view;
 
@@ -111,25 +115,26 @@ public class Simulator
     public void simulateOneStep()
     {
         step++;
+        updateWeather();
         // Use a separate Field to store the starting state of
         // the next step.
         Field nextFieldState = new Field(field.getDepth(), field.getWidth());
 
         List<Animal> animals = field.getAnimals();
         for (Animal anAnimal : animals) {
-            anAnimal.act(field, nextFieldState, isNight());
+            anAnimal.act(field, nextFieldState, isNight(), currentWeather);
         }
 
         List<Plant> livePlants = field.getPlants();
         for (Plant aPlant : livePlants) {
-            aPlant.act(field, nextFieldState);
+            aPlant.act(field, nextFieldState, currentWeather);
         }
         
         // Replace the old state with the new one.
         field = nextFieldState;
 
         reportStats();
-        if(view != null) view.showStatus(step, getTimeLabel(), field);
+        if(view != null) view.showStatus(step, getStatusLabel(), field);
     }
 
     /**
@@ -138,8 +143,9 @@ public class Simulator
     public void reset()
     {
         step = 0;
+        currentWeather = Weather.random(rand);
         populate();
-        if(view != null) view.showStatus(step, getTimeLabel(), field);
+        if(view != null) view.showStatus(step, getStatusLabel(), field);
     }
     
     /**
@@ -229,6 +235,25 @@ public class Simulator
     private String getTimeLabel()
     {
         return "Day " + getDayNumber() + " " + String.format("%02d:00", getHourOfDay());
+    }
+
+    private String getStatusLabel()
+    {
+        return getTimeLabel() + " | Weather: " + currentWeather.getLabel();
+    }
+
+    /**
+     * Update weather. Weather changes once per hour
+     */
+    private void updateWeather()
+    {
+        if(currentWeather == null) {
+            currentWeather = Weather.random(rand);
+            return;
+        }
+        if(step % STEPS_PER_HOUR == 0 && rand.nextDouble() <= WEATHER_CHANGE_PROBABILITY) {
+            currentWeather = Weather.random(rand);
+        }
     }
     
     /**

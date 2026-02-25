@@ -19,7 +19,7 @@ public abstract class Plant
     }
 
     /** Each step the plant gets to act (age, spread seeds, etc.). */
-    public abstract void act(Field currentField, Field nextFieldState);
+    public abstract void act(Field currentField, Field nextFieldState, Weather weather);
 
     /** Maximum age before this plant dies. */
     public abstract int getMaxAge();

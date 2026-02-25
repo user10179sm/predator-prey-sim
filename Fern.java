@@ -23,12 +23,12 @@ public class Fern extends Plant
     }
 
     @Override
-    public void act(Field currentField, Field nextFieldState)
+    public void act(Field currentField, Field nextFieldState, Weather weather)
     {
         incrementAge();
         if(isAlive()) {
             nextFieldState.placePlant(this, getLocation());
-            if(isEdible()) {
+            if(isEdible() && weather == Weather.RAIN) {
                 List<Location> free = nextFieldState.getFreeAdjacentLocations(getLocation());
                 for(Location loc : free) {
                     if(nextFieldState.getPlantAt(loc) == null

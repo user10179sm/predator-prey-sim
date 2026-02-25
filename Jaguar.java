@@ -12,6 +12,7 @@ public class Jaguar extends Animal
     private static final double BREEDING_PROBABILITY = 0.04;
     private static final int MAX_LITTER_SIZE = 1;
     private static final int PREY_FOOD_VALUE = 14;
+    private static final double FOG_HUNT_FAIL_PROBABILITY = 0.55;
     private static final Random rand = Randomizer.getRandom();
 
     public Jaguar(boolean randomAge, Location location)
@@ -24,7 +25,7 @@ public class Jaguar extends Animal
     }
 
     @Override
-    public void act(Field currentField, Field nextFieldState, boolean isNight)
+    public void act(Field currentField, Field nextFieldState, boolean isNight, Weather weather)
     {
         incrementAge();
         incrementHunger();
@@ -34,7 +35,11 @@ public class Jaguar extends Animal
             if(!freeLocations.isEmpty()) {
                 giveBirth(currentField, nextFieldState, freeLocations);
             }
-            Location nextLocation = findFood(currentField);
+            Location nextLocation = null;
+            // Jaguars often fail to spot prey in fog.
+            if(weather != Weather.FOG || rand.nextDouble() > FOG_HUNT_FAIL_PROBABILITY) {
+                nextLocation = findFood(currentField);
+            }
             // Guard: prey's current-field location may already be occupied in nextFieldState.
             if(nextLocation != null && nextFieldState.getAnimalAt(nextLocation) != null) {
                 nextLocation = freeLocations.isEmpty() ? null : freeLocations.remove(0);
