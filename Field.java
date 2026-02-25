@@ -16,8 +16,12 @@ public class Field
     private final int depth, width;
     // Animals mapped by location.
     private final Map<Location, Animal> field = new HashMap<>();
+    // Plants mapped by location (separate layer).
+    private final Map<Location, Plant> plants = new HashMap<>();
     // The animals.
     private final List<Animal> animals = new ArrayList<>();
+    // The plants (kept separate from animals).
+    private final List<Plant> plantList = new ArrayList<>();
 
     /**
      * Represent a field of the given dimensions.
@@ -40,12 +44,41 @@ public class Field
     public void placeAnimal(Animal anAnimal, Location location)
     {
         assert location != null;
-        Object other = field.get(location);
+        Animal other = field.get(location);
         if(other != null) {
             animals.remove(other);
         }
         field.put(location, anAnimal);
         animals.add(anAnimal);
+    }
+
+    /**
+     * Place a plant at the given location. Plants are kept in a separate
+     * layer from animals. If there is already a plant at the location it will
+     * be replaced.
+     */
+    public void placePlant(Plant aPlant, Location location)
+    {
+        assert location != null;
+        Plant other = plants.get(location);
+        if(other != null) {
+            plantList.remove(other);
+        }
+        if(aPlant == null) {
+            plants.remove(location);
+        }
+        else {
+            plants.put(location, aPlant);
+            plantList.add(aPlant);
+        }
+    }
+
+    /**
+     * Remove any plant at the given location.
+     */
+    public void clearPlant(Location location)
+    {
+        plants.remove(location);
     }
     
     /**
@@ -56,6 +89,14 @@ public class Field
     public Animal getAnimalAt(Location location)
     {
         return field.get(location);
+    }
+
+    /**
+     * Return the plant at the given location, if any.
+     */
+    public Plant getPlantAt(Location location)
+    {
+        return plants.get(location);
     }
 
     /**
@@ -114,25 +155,55 @@ public class Field
     }
 
     /**
+     * Return a shuffled list of all locations within the given radius
+     * of the specified location, excluding the location itself.
+     */
+    public List<Location> getLocationsWithinRadius(Location location, int radius)
+    {
+        List<Location> locations = new ArrayList<>();
+        if(location != null) {
+            int row = location.row();
+            int col = location.col();
+            for(int roffset = -radius; roffset <= radius; roffset++) {
+                int nextRow = row + roffset;
+                if(nextRow >= 0 && nextRow < depth) {
+                    for(int coffset = -radius; coffset <= radius; coffset++) {
+                        int nextCol = col + coffset;
+                        if(nextCol >= 0 && nextCol < width && (roffset != 0 || coffset != 0)) {
+                            locations.add(new Location(nextRow, nextCol));
+                        }
+                    }
+                }
+            }
+            Collections.shuffle(locations, rand);
+        }
+        return locations;
+    }
+
+    /**
      * Print out the number of foxes and rabbits in the field.
      */
     public void fieldStats()
     {
-        int numFoxes = 0, numRabbits = 0;
+        // Generic counts for all species present in the field.
+        Map<Class<?>, Integer> counts = new HashMap<>();
         for(Animal anAnimal : field.values()) {
-            if(anAnimal instanceof Fox fox) {
-                if(fox.isAlive()) {
-                    numFoxes++;
-                }
-            }
-            else if(anAnimal instanceof Rabbit rabbit) {
-                if(rabbit.isAlive()) {
-                    numRabbits++;
-                }
+            if(anAnimal != null && anAnimal.isAlive()) {
+                counts.merge(anAnimal.getClass(), 1, Integer::sum);
             }
         }
-        System.out.println("Rabbits: " + numRabbits +
-                           " Foxes: " + numFoxes);
+        for(Plant p : plants.values()) {
+            if(p != null && p.isAlive()) {
+                counts.merge(p.getClass(), 1, Integer::sum);
+            }
+        }
+        // Format output similar to previous implementation.
+        StringBuilder sb = new StringBuilder();
+        for(Map.Entry<Class<?>, Integer> e : counts.entrySet()) {
+            String name = e.getKey().getSimpleName();
+            sb.append(name).append(": ").append(e.getValue()).append(' ');
+        }
+        System.out.println(sb.toString().trim());
     }
 
     /**
@@ -141,6 +212,9 @@ public class Field
     public void clear()
     {
         field.clear();
+        plants.clear();
+        animals.clear();
+        plantList.clear();
     }
 
     /**
@@ -149,23 +223,25 @@ public class Field
      */
     public boolean isViable()
     {
-        boolean rabbitFound = false;
-        boolean foxFound = false;
-        Iterator<Animal> it = animals.iterator();
-        while(it.hasNext() && ! (rabbitFound && foxFound)) {
-            Animal anAnimal = it.next();
-            if(anAnimal instanceof Rabbit rabbit) {
-                if(rabbit.isAlive()) {
-                    rabbitFound = true;
-                }
-            }
-            else if(anAnimal instanceof Fox fox) {
-                if(fox.isAlive()) {
-                    foxFound = true;
+        // Viable if at least two different species are alive.
+        Set<Class<?>> aliveSpecies = new HashSet<>();
+        for(Animal a : animals) {
+            if(a != null && a.isAlive()) {
+                aliveSpecies.add(a.getClass());
+                if(aliveSpecies.size() >= 2) {
+                    return true;
                 }
             }
         }
-        return rabbitFound && foxFound;
+        for(Plant p : plantList) {
+            if(p != null && p.isAlive()) {
+                aliveSpecies.add(p.getClass());
+                if(aliveSpecies.size() >= 2) {
+                    return true;
+                }
+            }
+        }
+        return false;
     }
     
     /**
@@ -174,6 +250,14 @@ public class Field
     public List<Animal> getAnimals()
     {
         return animals;
+    }
+
+    /**
+     * Get the list of plants.
+     */
+    public List<Plant> getPlants()
+    {
+        return plantList;
     }
 
     /**
