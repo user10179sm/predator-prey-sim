@@ -222,30 +222,39 @@ public class Field
     }
 
     /**
-     * Return whether there is at least one rabbit and one fox in the field.
-     * @return true if there is at least one rabbit and one fox in the field.
+     * Return whether the ecosystem can continue to sustain itself.
+     * Requires at least one animal to be alive, and every alive animal
+     * species must have at least one of its food sources also alive.
+     * A species whose only prey is extinct will inevitably starve, so
+     * the simulation stops rather than running out pointlessly.
      */
     public boolean isViable()
     {
-        // Viable if at least two different species are alive.
-        Set<Class<?>> aliveSpecies = new HashSet<>();
+        // Collect all alive species classes (animals and plants).
+        Set<Class<?>> aliveClasses = new HashSet<>();
         for(Animal a : animals) {
-            if(a != null && a.isAlive()) {
-                aliveSpecies.add(a.getClass());
-                if(aliveSpecies.size() >= 2) {
-                    return true;
-                }
-            }
+            if(a != null && a.isAlive()) aliveClasses.add(a.getClass());
         }
         for(Plant p : plantList) {
-            if(p != null && p.isAlive()) {
-                aliveSpecies.add(p.getClass());
-                if(aliveSpecies.size() >= 2) {
-                    return true;
-                }
+            if(p != null && p.isAlive()) aliveClasses.add(p.getClass());
+        }
+
+        // Pick one live representative per animal species.
+        Map<Class<?>, Animal> reps = new HashMap<>();
+        for(Animal a : animals) {
+            if(a != null && a.isAlive() && !reps.containsKey(a.getClass())) {
+                reps.put(a.getClass(), a);
             }
         }
-        return false;
+
+        // Need at least one animal alive.
+        if(reps.isEmpty()) return false;
+
+        // Every alive animal species must have at least one alive food source.
+        for(Animal rep : reps.values()) {
+            if(!rep.hasFoodSource(aliveClasses)) return false;
+        }
+        return true;
     }
     
     /**

@@ -1,13 +1,13 @@
 /**
- * A fern plant that grows on the rainforest floor. Once mature it can spread
- * spores into adjacent free cells and be grazed by Capybaras.
+ * A fern plant that grows on the rainforest floor.
+ * Can spread spores into adjacent free cells and be grazed by Capybaras.
  */
 public class Fern extends Plant
 {
-    private static final int    MATURITY_AGE      = 10;
-    private static final int    MAX_AGE           = 80;
+    private static final int MATURITY_AGE = 10;
+    private static final int MAX_AGE = 80;
     private static final double SPORE_PROBABILITY = 0.30;
-    private static final int    MAX_SPORES        = 5;
+    private static final int MAX_SPORES = 5;
 
     public Fern(boolean randomAge, Location location)
     {

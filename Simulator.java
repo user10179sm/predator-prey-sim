@@ -8,8 +8,6 @@ import java.util.*;
  * @version 7.1
  */
 
-// create a main class so that I can
-
 public class Simulator
 {
     // Constants representing configuration information for the simulation.
@@ -31,7 +29,7 @@ public class Simulator
     private int step;
     // Tracks time-of-day and weather for this simulation run.
     private final SimulationContext ctx = new SimulationContext();
-    // A graphical view of the simulation (null in headless mode).
+    // A graphical view of the simulation
     private final SimulatorView view;
 
     /**
@@ -39,24 +37,15 @@ public class Simulator
      */
     public Simulator()
     {
-        this(DEFAULT_DEPTH, DEFAULT_WIDTH, false);
-    }
-
-    /**
-     * Construct a simulation in headless mode (no GUI).
-     */
-    public Simulator(boolean headless)
-    {
-        this(DEFAULT_DEPTH, DEFAULT_WIDTH, headless);
+        this(DEFAULT_DEPTH, DEFAULT_WIDTH);
     }
 
     /**
      * Create a simulation field with the given size.
      * @param depth Depth of the field. Must be greater than zero.
      * @param width Width of the field. Must be greater than zero.
-     * @param headless If true, no GUI is created.
      */
-    public Simulator(int depth, int width, boolean headless)
+    public Simulator(int depth, int width)
     {
         if(width <= 0 || depth <= 0) {
             System.out.println("The dimensions must be >= zero.");
@@ -66,17 +55,9 @@ public class Simulator
         }
 
         field = new Field(depth, width);
-        view = headless ? null : new SimulatorView(depth, width);
+        view = new SimulatorView(depth, width);
 
         reset();
-    }
-
-    /**
-     * Keep old two-arg constructor working.
-     */
-    public Simulator(int depth, int width)
-    {
-        this(depth, width, false);
     }
     
     /**
@@ -98,7 +79,7 @@ public class Simulator
         reportStats();
         for(int n = 1; n <= numSteps && field.isViable(); n++) {
             simulateOneStep();
-            if(view != null) delay(50);
+            delay(50);
         }
     }
     
@@ -128,7 +109,7 @@ public class Simulator
         field = nextFieldState;
 
         reportStats();
-        if(view != null) view.showStatus(step, field, ctx);
+        view.showStatus(step, field, ctx);
     }
 
     /**
@@ -138,7 +119,7 @@ public class Simulator
     {
         step = 0;
         populate();
-        if(view != null) view.showStatus(step, field, ctx);
+        view.showStatus(step, field, ctx);
     }
     
     /**

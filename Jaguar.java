@@ -1,11 +1,10 @@
 /**
  * A jaguar — an apex predator that hunts Capybaras.
- * Extends ApexPredator which provides shared MAX_AGE, BREEDING_AGE, etc.
  */
 public class Jaguar extends ApexPredator
 {
     private static final double BREEDING_PROBABILITY = 0.10;
-    private static final int    PREY_FOOD_VALUE      = 14;
+    private static final int PREY_FOOD_VALUE = 14;
 
     public Jaguar(boolean randomAge, Location location)
     {

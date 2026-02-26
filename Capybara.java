@@ -4,11 +4,11 @@
  */
 public class Capybara extends Animal
 {
-    private static final int    BREEDING_AGE         = 5;
-    private static final int    MAX_AGE              = 80;
+    private static final int BREEDING_AGE = 5;
+    private static final int MAX_AGE = 80;
     private static final double BREEDING_PROBABILITY = 0.10;
-    private static final int    MAX_LITTER_SIZE      = 1;
-    private static final int    FERN_FOOD_VALUE      = 12;
+    private static final int MAX_LITTER_SIZE = 1;
+    private static final int FERN_FOOD_VALUE = 12;
 
     public Capybara(boolean randomAge, Location location)
     {
@@ -17,14 +17,12 @@ public class Capybara extends Animal
         if(randomAge) setAge(rand.nextInt(MAX_AGE + 1));
     }
 
-    @Override protected boolean requiresMate()           { return true; }
-    @Override protected int     getGenderSearchRadius()  { return 10; }
-    @Override protected int     getHungerThreshold()     { return FERN_FOOD_VALUE / 2; }
-    @Override public    boolean usesHunger()             { return true; }
-    @Override public    int     getMaxAge()              { return MAX_AGE; }
-    @Override protected int     getBreedingAge()         { return BREEDING_AGE; }
-    @Override protected double  getBreedingProbability() { return BREEDING_PROBABILITY; }
-    @Override protected int     getMaxLitterSize()       { return MAX_LITTER_SIZE; }
+    @Override protected int getGenderSearchRadius()     { return 10; }
+    @Override protected int getHungerThreshold()        { return FERN_FOOD_VALUE / 2; }
+    @Override public int getMaxAge()                    { return MAX_AGE; }
+    @Override protected int getBreedingAge()            { return BREEDING_AGE; }
+    @Override protected double getBreedingProbability() { return BREEDING_PROBABILITY; }
+    @Override protected int getMaxLitterSize()          { return MAX_LITTER_SIZE; }
 
     @Override
     protected int getFoodValue(Class<?> preyClass)
