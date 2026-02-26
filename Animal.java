@@ -161,7 +161,9 @@ public abstract class Animal extends SimulationEntity
 
             // Plant prey
             Plant plant = field.getPlantAt(loc);
-            if(plant != null && plant.isAlive() && getFoodValue(plant.getClass()) > 0) {
+            if(plant != null && plant.isAlive()
+                    && plant.isEdible()
+                    && getFoodValue(plant.getClass()) > 0) {
                 plant.setDead();
                 field.clearPlant(loc);
                 foodLevel = getFoodValue(plant.getClass());

@@ -12,7 +12,7 @@ import java.util.Map;
 
 public class FieldStats
 {
-    // Counters for each type of entity (fox, rabbit, etc.) in the simulation.
+    // Counters for each type of animal in the simulation.
     private final Map<Class<?>, Counter> counters;
     // Whether the counters are currently up to date.
     private boolean countsValid;
@@ -96,10 +96,8 @@ public class FieldStats
     }
     
     /**
-     * Generate counts of the number of foxes and rabbits.
-     * These are not kept up to date as foxes and rabbits
-     * are placed in the field, but only when a request
-     * is made for the information.
+     * Generate counts for all animals and plants currently in the field.
+     * These are not kept up to date as animals and plants are placed in the field.
      * @param field The field to generate the stats for.
      */
     private void generateCounts(Field field)

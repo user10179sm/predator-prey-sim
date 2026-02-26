@@ -185,7 +185,7 @@ public class Field
     }
 
     /**
-     * Print out the number of foxes and rabbits in the field.
+     * Print out the number of each species currently in the field.
      */
     public void fieldStats()
     {

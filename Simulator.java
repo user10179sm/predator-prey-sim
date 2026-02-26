@@ -1,8 +1,7 @@
 import java.util.*;
 
 /**
- * A simple predator-prey simulator, based on a rectangular field containing 
- * rabbits and foxes.
+ * A rainforest predator-prey simulator on a rectangular field.
  * 
  * @author David J. Barnes and Michael Kölling
  * @version 7.1
@@ -85,7 +84,7 @@ public class Simulator
     
     /**
      * Run the simulation from its current state for a single step.
-     * Iterate over the whole field updating the state of each fox and rabbit.
+     * Iterate over the whole field updating the state of animals and plants.
      */
     public void simulateOneStep()
     {
@@ -123,7 +122,7 @@ public class Simulator
     }
     
     /**
-     * Randomly populate the field with foxes and rabbits.
+     * Randomly populate the field with rainforest species.
      */
     private void populate()
     {
