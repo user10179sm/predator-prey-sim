@@ -222,11 +222,9 @@ public class Field
     }
 
     /**
-     * Return whether the ecosystem can continue to sustain itself.
-     * Requires at least one animal to be alive, and every alive animal
-     * species must have at least one of its food sources also alive.
-     * A species whose only prey is extinct will inevitably starve, so
-     * the simulation stops rather than running out pointlessly.
+     * Check if the simulation should keep running. We need at least one
+     * animal alive, and each species needs something it can still eat —
+     * otherwise it'll just starve out anyway.
      */
     public boolean isViable()
     {

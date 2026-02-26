@@ -1,6 +1,6 @@
 /**
- * Intermediate abstract class shared by Jaguar and HarpyEagle.
- * Consolidates the constants and behaviour common to both apex predators.
+ * Shared base for Jaguar and HarpyEagle since they have
+ * a lot of the same constants and behaviour.
  */
 public abstract class ApexPredator extends Animal
 {
@@ -13,9 +13,9 @@ public abstract class ApexPredator extends Animal
         super(location);
     }
 
-    @Override public int getMaxAge()               { return APEX_MAX_AGE; }
-    @Override protected int getBreedingAge()       { return APEX_BREEDING_AGE; }
-    @Override protected int getMaxLitterSize()     { return APEX_MAX_LITTER_SIZE; }
-    @Override protected int getGenderSearchRadius(){ return 20; }
-    @Override protected boolean isAlwaysHungry()   { return true; }
+    @Override public int getMaxAge() { return APEX_MAX_AGE; }
+    @Override protected int getBreedingAge() { return APEX_BREEDING_AGE; }
+    @Override protected int getMaxLitterSize() { return APEX_MAX_LITTER_SIZE; }
+    @Override protected int getGenderSearchRadius() { return 20; }
+    @Override protected boolean isAlwaysHungry() { return true; }
 }

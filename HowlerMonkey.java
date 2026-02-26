@@ -17,12 +17,12 @@ public class HowlerMonkey extends Animal
         if(randomAge) setAge(rand.nextInt(MAX_AGE + 1));
     }
 
-    @Override protected int getGenderSearchRadius()     { return 10; }
-    @Override protected int getHungerThreshold()        { return FRUIT_FOOD_VALUE / 2; }
-    @Override public int getMaxAge()                    { return MAX_AGE; }
-    @Override protected int getBreedingAge()            { return BREEDING_AGE; }
+    @Override protected int getGenderSearchRadius() { return 10; }
+    @Override protected int getHungerThreshold() { return FRUIT_FOOD_VALUE / 2; }
+    @Override public int getMaxAge() { return MAX_AGE; }
+    @Override protected int getBreedingAge() { return BREEDING_AGE; }
     @Override protected double getBreedingProbability() { return BREEDING_PROBABILITY; }
-    @Override protected int getMaxLitterSize()          { return MAX_LITTER_SIZE; }
+    @Override protected int getMaxLitterSize() { return MAX_LITTER_SIZE; }
 
     @Override
     protected int getFoodValue(Class<?> preyClass)

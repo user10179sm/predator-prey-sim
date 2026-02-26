@@ -1,9 +1,9 @@
 import java.util.Random;
 
 /**
- * Tracks the current time of day and weather for the simulation.
- * One step represents one hour; a full day is 24 steps.
- * Weather is redrawn at midnight (night conditions only) and at dawn (any condition).
+ * Keeps track of the time of day and weather as the simulation runs.
+ * Each step is one hour, so a full day cycle takes 24 steps.
+ * Weather gets re-rolled at midnight and again at dawn.
  */
 public class SimulationContext
 {
@@ -13,8 +13,8 @@ public class SimulationContext
 
     private static final int STEPS_PER_DAY = 24;
 
-    // Daytime: SUNNY, RAINY, FOGGY, STORMY. Night: RAINY, FOGGY, STORMY only.
-    private static final double[] DAY_WEATHER_PROB   = { 0.45, 0.30, 0.15, 0.10 };
+    // probability weights for each weather type (day can be sunny, night can't)
+    private static final double[] DAY_WEATHER_PROB = { 0.45, 0.30, 0.15, 0.10 };
     private static final double[] NIGHT_WEATHER_PROB = { 0.40, 0.35, 0.25 };
 
     private final Random rand = Randomizer.getRandom();
@@ -26,35 +26,36 @@ public class SimulationContext
     private WeatherCondition weather = WeatherCondition.FOGGY;
 
 
-    public TimePhase getTimePhase()        { return timePhase; }
-    public WeatherCondition getWeather()   { return weather;   }
-    public int getStep()                   { return totalStep; }
+    public TimePhase getTimePhase() { return timePhase; }
+    public WeatherCondition getWeather() { return weather; }
+    public int getStep() { return totalStep; }
 
-    public boolean isNight()    { return timePhase == TimePhase.NIGHT; }
-    public boolean isDawn()     { return timePhase == TimePhase.DAWN;  }
-    public boolean isDay()      { return timePhase == TimePhase.DAY;   }
-    public boolean isDusk()     { return timePhase == TimePhase.DUSK;  }
-    /** True during DAWN, DAY, or DUSK. */
-    public boolean isDaylight() { return timePhase != TimePhase.NIGHT; }
+    public boolean isNight() { return timePhase == TimePhase.NIGHT; }
+    public boolean isDawn() { return timePhase == TimePhase.DAWN; }
+    public boolean isDay() { return timePhase == TimePhase.DAY; }
+    public boolean isDusk() { return timePhase == TimePhase.DUSK; }
+    public boolean isDaylight() { return timePhase != TimePhase.NIGHT; }  // not night
 
-    public boolean isSunny()    { return weather == WeatherCondition.SUNNY;   }
-    public boolean isRainy()    { return weather == WeatherCondition.RAINY;   }
-    public boolean isFoggy()    { return weather == WeatherCondition.FOGGY;   }
-    public boolean isStormy()   { return weather == WeatherCondition.STORMY;  }
+    public boolean isSunny() { return weather == WeatherCondition.SUNNY; }
+    public boolean isRainy() { return weather == WeatherCondition.RAINY; }
+    public boolean isFoggy() { return weather == WeatherCondition.FOGGY; }
+    public boolean isStormy() { return weather == WeatherCondition.STORMY; }
 
+    // Rain boosts growth, storms stunt it.
     public double plantGrowthFactor()
     {
-        if(weather == WeatherCondition.RAINY)  return 1.7;
-        if(weather == WeatherCondition.FOGGY)  return 0.85;
+        if(weather == WeatherCondition.RAINY) return 1.7;
+        if(weather == WeatherCondition.FOGGY) return 0.85;
         if(weather == WeatherCondition.STORMY) return 0.3;
         return 1.0;
     }
 
+    // Storms make hunting impossible, fog and rain also reduce it.
     public double huntingSuccessFactor()
     {
-        if(weather == WeatherCondition.RAINY)  return 0.65;
-        if(weather == WeatherCondition.FOGGY)  return 0.30;
         if(weather == WeatherCondition.STORMY) return 0.0;
+        if(weather == WeatherCondition.FOGGY) return 0.30;
+        if(weather == WeatherCondition.RAINY) return 0.65;
         return 1.0;
     }
 
@@ -63,11 +64,12 @@ public class SimulationContext
         return weather != WeatherCondition.STORMY;
     }
 
+    // No breeding during storms.
     public double breedingFactor()
     {
-        if(weather == WeatherCondition.RAINY)  return 0.8;
-        if(weather == WeatherCondition.FOGGY)  return 0.9;
         if(weather == WeatherCondition.STORMY) return 0.0;
+        else if(weather == WeatherCondition.RAINY) return 0.8;
+        else if(weather == WeatherCondition.FOGGY) return 0.9;
         return 1.0;
     }
 
@@ -91,16 +93,16 @@ public class SimulationContext
     public String toDisplayString()
     {
         String timeIcon;
-        if(timePhase == TimePhase.NIGHT)     timeIcon = "Night";
+        if(timePhase == TimePhase.NIGHT) timeIcon = "Night";
         else if(timePhase == TimePhase.DAWN) timeIcon = "Dawn";
-        else if(timePhase == TimePhase.DAY)  timeIcon = "Day";
-        else                                 timeIcon = "Dusk";
+        else if(timePhase == TimePhase.DAY) timeIcon = "Day";
+        else timeIcon = "Dusk";
 
         String weatherIcon;
-        if(weather == WeatherCondition.SUNNY)       weatherIcon = "Sunny";
-        else if(weather == WeatherCondition.RAINY)  weatherIcon = "Rainy";
-        else if(weather == WeatherCondition.FOGGY)  weatherIcon = "Foggy";
-        else                                        weatherIcon = "Storm";
+        if(weather == WeatherCondition.SUNNY) weatherIcon = "Sunny";
+        else if(weather == WeatherCondition.RAINY) weatherIcon = "Rainy";
+        else if(weather == WeatherCondition.FOGGY) weatherIcon = "Foggy";
+        else weatherIcon = "Storm";
 
         return timeIcon + "  " + weatherIcon;
     }
@@ -120,8 +122,8 @@ public class SimulationContext
     private static TimePhase phaseFor(int step)
     {
         if(step < 5 || step >= 20) return TimePhase.NIGHT;
-        if(step < 7)               return TimePhase.DAWN;
-        if(step < 18)              return TimePhase.DAY;
+        if(step < 7) return TimePhase.DAWN;
+        if(step < 18) return TimePhase.DAY;
         return TimePhase.DUSK;
     }
 }

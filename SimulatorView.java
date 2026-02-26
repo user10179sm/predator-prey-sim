@@ -41,12 +41,12 @@ public class SimulatorView extends JFrame
     {
         stats = new FieldStats();
         colors = new LinkedHashMap<>();
-        setColor(Capybara.class,    new Color(139, 90, 43));   // brown
-        setColor(HowlerMonkey.class,new Color(180, 130, 60));  // tan
-        setColor(Jaguar.class,      new Color(210, 100, 0));   // dark orange
-        setColor(HarpyEagle.class,  new Color(50, 50, 160));   // dark blue
-        setColor(Fern.class,        new Color(80, 200, 50));   // vivid lime green
-        setColor(FruitTree.class,   new Color(0, 130, 90));    // dark emerald/teal
+        setColor(Capybara.class, new Color(139, 90, 43)); // brown
+        setColor(HowlerMonkey.class, new Color(180, 130, 60)); // tan
+        setColor(Jaguar.class, new Color(210, 100, 0)); // dark orange
+        setColor(HarpyEagle.class, new Color(50, 50, 160)); // dark blue
+        setColor(Fern.class, new Color(80, 200, 50)); // green
+        setColor(FruitTree.class, new Color(0, 130, 90)); // dark teal
 
         setTitle("Rainforest Predator-Prey Simulation");
         stepLabel = new JLabel(STEP_PREFIX, JLabel.CENTER);

@@ -23,12 +23,8 @@ public abstract class Plant extends SimulationEntity
     /** Whether this plant has reached maturity and can be eaten/spread. */
     public boolean isEdible() { return getAge() >= maturityAge; }
 
-    /**
-     * Tries to spread offspring into free adjacent cells.
-     * @param spreadProb        Per-cell probability of placing an offspring.
-     * @param maxOffspring      Maximum offspring per step.
-     * @param requiresDaylight  If true, spreading only occurs during daylight.
-     */
+    // Try to spread into free neighbouring cells. spreadProb is the chance per cell,
+    // maxOffspring caps how many can be placed, and requiresDaylight stops night spreading.
     protected void spreadOffspring(Field currentField, Field nextFieldState,
                                    SimulationContext ctx,
                                    double spreadProb, int maxOffspring,
